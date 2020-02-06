@@ -25,6 +25,7 @@
 #include <utility>
 #include <vector>
 
+using namespace std;
 namespace llvm {
 
 
@@ -70,7 +71,7 @@ class Info {
 template <class Info, bool Direction>
 class DataFlowAnalysis {
 
-  private:
+  protected:
 		typedef std::pair<unsigned, unsigned> Edge;
 		// Index to instruction map
 		std::map<unsigned, Instruction *> IndexToInstr;
@@ -277,8 +278,47 @@ class DataFlowAnalysis {
     	assert(EntryInstr != nullptr && "Entry instruction is null.");
 
     	// (2) Initialize the work list
+		unsigned node = 0;
+		worklist.push_back(node);
+		++node;
+
+		for (inst_iterator i = inst_begin(func), i_end = inst_end(func); i != i_end; i++) {
+			if (!Direction) {
+				worklist.push_front(node);
+				++node;
+			}
+			else {
+				worklist.push_back(node);
+			}
+		}
 
     	// (3) Compute until the work list is empty
+		while ( !worklist.empty() ) {
+			unsigned idx = worklist.front();
+			worklist.pop_front();
+			if (idx == 0) continue; 
+			Instruction *inst = IndexToInstr[idx];
+
+			vector<Info *> Infos;
+			vector<unsigned> InEdges, OutEdges;
+			getIncomingEdges(idx, &InEdges);
+			getOutgoingEdges(idx, &OutEdges);
+			flowfunction(inst, InEdges, OutEdges, Infos);
+
+			for ( unsigned i = 0; i < OutEdges.size(); i++ ) {
+				Info * curInfo = new Info();
+				unsigned to = OutEdges[i];
+				Edge cur_edge = make_pair(idx, to);
+				Info::join(Infos[i], EdgeToInfo[cur_edge], curInfo);
+
+				if ( !Info::equals(EdgeToInfo[cur_edge], curInfo) ) {
+					worklist.push_back(OutEdges[i]);
+					EdgeToInfo[cur_edge] = curInfo;
+				}
+			}
+
+		} 
+
     }
 };
 
