@@ -24,6 +24,7 @@
 #include <map>
 #include <utility>
 #include <vector>
+#include <set>
 
 using namespace std;
 namespace llvm {
@@ -218,7 +219,47 @@ class DataFlowAnalysis {
 		 *   Implement the following function in part 3 for backward analyses
 		 */
 		void initializeBackwardMap(Function * func) {
+			assignIndiceToInstrs(func);
 
+			for (auto blk = func->begin(), blk_end = func->end(); blk != blk_end; ++blk ) {
+				BasicBlock * basic_block = &*blk;
+				Instruction * firInst = &(basic_block->front());
+
+				auto p = pred_begin(basic_block);
+				for (auto p_end = pred_end(basic_block); p != p_end; ++p ) {
+					BasicBlock * pre = * p;
+					Instruction * dst = firInst;
+					Instruction * src = (Instruction *) pre->getTerminator();
+					addEdge(dst, src, &Bottom);
+				}	
+				
+				if (isa<PHINode>(firInst) ) {
+					Instruction * phi = basic_block->getFirstNonPHI();
+					addEdge( phi, firInst, &Bottom );
+				}
+				
+				for ( auto i = basic_block->begin(), i_end = basic_block->end(); i != i_end; ++i ) {
+					Instruction * inst = &*i;
+					if( isa<PHINode>(inst) )
+						continue;
+					if ( isa<ReturnInst>(inst) ) {
+						addEdge(nullptr, inst, &Bottom);
+					}
+					if (inst == (Instruction *)basic_block->getTerminator() )
+						break;
+					addEdge(inst->getNextNode(), inst, &Bottom);
+				}
+
+				Instruction * terminator = (Instruction *) basic_block->getTerminator();
+				for (auto s = succ_begin(basic_block), s_end = succ_end(basic_block); s != s_end; ++s ) {
+					BasicBlock * successor = * s;
+					Instruction * next_inst = &(successor->front() );
+					addEdge( next_inst, terminator, &Bottom );
+				}
+			}
+
+			EntryInstr = (Instruction *) &((func->back()).back() );
+			return;
 		}
 
     /*
