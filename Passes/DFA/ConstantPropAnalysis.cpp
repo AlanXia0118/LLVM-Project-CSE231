@@ -34,7 +34,7 @@ class ConstPropInfo : public Info {
                 ConstState state = r->second.state;
                 errs() << var->getName() << "=";
                 if (state == Bottom) {
-                    errs() << "⊥|";
+                    errs() << "⊤|";
                 }
                 else if (state == Top) {
                     errs() << "⊤|";
@@ -132,7 +132,7 @@ class ConstPropAnalysis : public DataFlowAnalysis<ConstPropInfo, true> {
             
 
 			map<Edge, ConstPropInfo *> edgeToInfo = EdgeToInfo;
-            // ConstantFolder *FOLDER;
+            ConstantFolder *FOLDER;
             string op_name = I->getOpcodeName();
 
             ConstPropInfo * info = new ConstPropInfo();
@@ -146,51 +146,53 @@ class ConstPropAnalysis : public DataFlowAnalysis<ConstPropInfo, true> {
 			}
 
 
-            info->setTop(I);
+            // info->setTop(I);
 
-            // if (BinaryOperator* bin_op = dyn_cast(BinaryOperator)(I) ) {
-            //     Value* x = I.getOperand(0);
-            //     Value* y = I.getOperand(1);
+            if (BinaryOperator* bin_op = dyn_cast<BinaryOperator>(I) ) {
+                Value* x = I->getOperand(0);
+                Value* y = I->getOperand(1);
 
-            //     Constant* cons_x = dyn_cast<Constant>(x);
-            //     Constant* cons_y = dyn_cast<Constant>(y);
+                Constant* cons_x = dyn_cast<Constant>(x);
+                Constant* cons_y = dyn_cast<Constant>(y);
 
-            //     if (!cons_x) {
-            //         cons_x = info->getConst(x);
-            //     }
-            //     if (!cons_y) {
-            //         cons_y = info->getConst(y);
-            //     }
+                if (!cons_x) {
+                    cons_x = info->getConst(x);
+                }
+                if (!cons_y) {
+                    cons_y = info->getConst(y);
+                }
 
-            //     if ( cons_x && cons_y ) {
-            //         // a will be a constant
-            //         int ret = info->setConst(I, FOLDER.CreateBinOp(bin_op->getOpCode(), cons_x, cons_y) );
-            //     }
-            //     else {
-            //         int ret = info->setTop(I);
-            //     }
+                if ( cons_x && cons_y ) {
+                    // a will be a constant
+                    int ret = info->setConst(I, FOLDER->CreateBinOp(bin_op->getOpcode(), cons_x, cons_y) );
+                }
+                else {
+                    int ret = info->setTop(I);
+                }
 
-            // }
+            }
             
-            // else if (UnaryOperator* u_op = dyn_cast(UnaryOperator)(I) ) {
-            //     Value* x = I.getOperand(0);
-            //     Constant* cons_x = dyn_cast<Constant>(x);
+            else if (UnaryOperator* u_op = dyn_cast<UnaryOperator>(I) ) {
+                Value* x = I->getOperand(0);
+                Constant* cons_x = dyn_cast<Constant>(x);
 
-            //     if (!cons_x) {
-            //         cons_x = info->getConst(x);
-            //     }
+                if (!cons_x) {
+                    cons_x = info->getConst(x);
+                }
             
-            //     if (cons_x) {
-            //         int ret = info->setConst(I, FOLDER.CreateUnOp(bin_op->getOpCode(), cons_x) );         
-            //     }
-            //     else {
-            //         int ret = info->setTop(I);
-            //     }
-            // }
+                if (cons_x) {
+                    int ret = info->setConst(I, FOLDER->CreateUnOp(u_op->getOpcode(), cons_x) );         
+                }
+                else {
+                    int ret = info->setTop(I);
+                }
+            }
 
-            // else () {
-            //     int ret = info->setTop(I);
-            // }
+            else {
+                int ret = info->setTop(I);
+            }
+
+
 
 			size_t j = 0;
 			for (; j < OutgoingEdges.size(); ++j) {
