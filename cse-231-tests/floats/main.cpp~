@@ -1,0 +1,6 @@
+int g1;
+int g2;
+void bug1() {
+  int *p = &g1;
+  g2 = *p;
+}

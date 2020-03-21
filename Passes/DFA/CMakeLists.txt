@@ -1,8 +1,7 @@
-add_llvm_library( submission_pt3 MODULE
+add_llvm_library( submission_pt4 MODULE
   231DFA.h
-  ReachingDefinitionAnalysis.cpp
-  LivenessAnalysis.cpp
-  MayPointToAnalysis.cpp
+  ConstantPropAnalysis.cpp
+  
   
   PLUGIN_TOOL
   opt
